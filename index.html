@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Text Share PWA</title>
+  <base href="/text-share-pwa/">
+  <link rel="manifest" href="manifest.webmanifest" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/text-share-pwa/sw.js');
+    }
+  </script>
+</head>
+<body>
+  <h1>Text Share Target</h1>
+  <pre id="shared">No shared data yet.</pre>
+  <script type="module">
+    const params = new URL(location.href).searchParams;
+    const title = params.get('title') || '';
+    const text  = params.get('text')  || '';
+    const url   = params.get('url')   || '';
+    const out = [
+      title && `Title: ${title}`,
+      text  && `Text:  ${text}`,
+      url   && `URL:   ${url}`,
+    ].filter(Boolean).join('\n');
+    document.getElementById('shared').textContent = out || 'No shared data yet.';
+  </script>
+</body>
+</html>
