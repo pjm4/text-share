@@ -6,6 +6,28 @@
   <title>Text Share PWA</title>
   <base href="/text-share-pwa/">
   <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    .translate-button {
+      position: absolute;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      display: none;
+      user-select: none;
+    }
+    .translate-button:hover {
+      background: #3367d6;
+    }
+    .translate-button:active {
+      background: #2a56c6;
+    }
+  </style>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/text-share-pwa/sw.js');
@@ -15,6 +37,7 @@
 <body>
   <h1>Text Share Target</h1>
   <pre id="shared">No shared data yet.</pre>
+  <button id="translateButton" class="translate-button">🔄 Translate</button>
   <script type="module">
     const params = new URL(location.href).searchParams;
     const title = params.get('title') || '';
@@ -26,6 +49,63 @@
       url   && `URL:   ${url}`,
     ].filter(Boolean).join('\n');
     document.getElementById('shared').textContent = out || 'No shared data yet.';
+
+    // Text selection and translate functionality
+    const translateButton = document.getElementById('translateButton');
+    let selectedText = '';
+
+    function showTranslateButton(x, y) {
+      translateButton.style.left = x + 'px';
+      translateButton.style.top = (y - 40) + 'px';
+      translateButton.style.display = 'block';
+    }
+
+    function hideTranslateButton() {
+      translateButton.style.display = 'none';
+    }
+
+    function handleSelection(event) {
+      const selection = window.getSelection();
+      selectedText = selection.toString().trim();
+      
+      if (selectedText) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        const x = rect.left + (rect.width / 2) - 40; // Center the button
+        const y = rect.top + window.scrollY;
+        showTranslateButton(x, y);
+      } else {
+        hideTranslateButton();
+      }
+    }
+
+    function translateText() {
+      if (selectedText) {
+        const encodedText = encodeURIComponent(selectedText);
+        const translateUrl = `https://translate.google.com/?sl=auto&tl=en&text=${encodedText}`;
+        window.open(translateUrl, '_blank');
+      }
+      hideTranslateButton();
+    }
+
+    // Event listeners
+    document.addEventListener('mouseup', handleSelection);
+    document.addEventListener('touchend', handleSelection);
+    document.addEventListener('selectionchange', () => {
+      // Hide button if selection is cleared
+      if (!window.getSelection().toString().trim()) {
+        hideTranslateButton();
+      }
+    });
+
+    translateButton.addEventListener('click', translateText);
+
+    // Hide button when clicking elsewhere
+    document.addEventListener('click', (event) => {
+      if (event.target !== translateButton && !window.getSelection().toString().trim()) {
+        hideTranslateButton();
+      }
+    });
   </script>
 </body>
 </html>
