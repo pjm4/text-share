@@ -6,6 +6,28 @@
   <title>Text Share PWA</title>
   <base href="/text-share-pwa/">
   <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    .translate-button {
+      position: absolute;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: none;
+      user-select: none;
+    }
+    .translate-button:hover {
+      background: #3367d6;
+    }
+    .translate-button:active {
+      background: #2f5bb7;
+    }
+  </style>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/text-share-pwa/sw.js');
@@ -15,6 +37,7 @@
 <body>
   <h1>Text Share Target</h1>
   <pre id="shared">No shared data yet.</pre>
+  <button id="translateButton" class="translate-button">Translate</button>
   <script type="module">
     const params = new URL(location.href).searchParams;
     const title = params.get('title') || '';
@@ -26,6 +49,84 @@
       url   && `URL:   ${url}`,
     ].filter(Boolean).join('\n');
     document.getElementById('shared').textContent = out || 'No shared data yet.';
+
+    // Text selection and translate functionality
+    let selectedText = '';
+    const translateButton = document.getElementById('translateButton');
+
+    function showTranslateButton(x, y) {
+      translateButton.style.left = x + 'px';
+      translateButton.style.top = (y - 40) + 'px';
+      translateButton.style.display = 'block';
+    }
+
+    function hideTranslateButton() {
+      translateButton.style.display = 'none';
+    }
+
+    function getSelectedText() {
+      const selection = window.getSelection();
+      return selection.toString().trim();
+    }
+
+    function translateText(text) {
+      const encodedText = encodeURIComponent(text);
+      const translateUrl = `https://translate.google.com/?sl=auto&tl=en&text=${encodedText}`;
+      window.open(translateUrl, '_blank');
+    }
+
+    // Handle text selection
+    document.addEventListener('mouseup', (e) => {
+      setTimeout(() => {
+        selectedText = getSelectedText();
+        if (selectedText.length > 0) {
+          showTranslateButton(e.pageX, e.pageY);
+        } else {
+          hideTranslateButton();
+        }
+      }, 10);
+    });
+
+    // Handle keyboard selection (e.g., Ctrl+A, Shift+Arrow keys)
+    document.addEventListener('keyup', (e) => {
+      setTimeout(() => {
+        selectedText = getSelectedText();
+        if (selectedText.length > 0) {
+          const selection = window.getSelection();
+          if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            showTranslateButton(rect.left + rect.width / 2, rect.top);
+          }
+        } else {
+          hideTranslateButton();
+        }
+      }, 10);
+    });
+
+    // Handle translate button click
+    translateButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (selectedText) {
+        translateText(selectedText);
+      }
+      hideTranslateButton();
+    });
+
+    // Hide button when clicking elsewhere
+    document.addEventListener('click', (e) => {
+      if (e.target !== translateButton) {
+        setTimeout(() => {
+          if (getSelectedText().length === 0) {
+            hideTranslateButton();
+          }
+        }, 10);
+      }
+    });
+
+    // Hide button on scroll
+    document.addEventListener('scroll', hideTranslateButton);
   </script>
 </body>
 </html>
