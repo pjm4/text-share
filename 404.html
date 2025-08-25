@@ -6,6 +6,43 @@
   <title>Text Share PWA</title>
   <base href="/text-share-pwa/">
   <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    
+    .translate-button {
+      position: absolute;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      cursor: pointer;
+      z-index: 1000;
+      display: none;
+      font-weight: 500;
+    }
+    
+    .translate-button:hover {
+      background: #3367d6;
+    }
+    
+    .translate-button:active {
+      transform: scale(0.95);
+    }
+    
+    .selectable-content {
+      user-select: text;
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+    }
+  </style>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/text-share-pwa/sw.js');
@@ -14,8 +51,14 @@
 </head>
 <body>
   <h1>Text Share Target</h1>
-  <pre id="shared">No shared data yet.</pre>
+  <div class="selectable-content">
+    <p>Welcome to Text Share PWA! This app can receive shared text from other Android apps and also allows you to translate selected text.</p>
+    <p>Try selecting some text on this page to see the translate button appear!</p>
+  </div>
+  <pre id="shared" class="selectable-content">No shared data yet.</pre>
+  <button id="translateButton" class="translate-button">🌐 Translate</button>
   <script type="module">
+    // Handle shared data from other apps
     const params = new URL(location.href).searchParams;
     const title = params.get('title') || '';
     const text  = params.get('text')  || '';
@@ -26,6 +69,84 @@
       url   && `URL:   ${url}`,
     ].filter(Boolean).join('\n');
     document.getElementById('shared').textContent = out || 'No shared data yet.';
+
+    // Text selection and translate functionality
+    let selectedText = '';
+    const translateButton = document.getElementById('translateButton');
+
+    function getSelectedText() {
+      const selection = window.getSelection();
+      return selection.toString().trim();
+    }
+
+    function showTranslateButton(x, y) {
+      translateButton.style.left = `${x}px`;
+      translateButton.style.top = `${y - 40}px`;
+      translateButton.style.display = 'block';
+    }
+
+    function hideTranslateButton() {
+      translateButton.style.display = 'none';
+    }
+
+    function translateText(text) {
+      // Open Google Translate with the selected text
+      const googleTranslateUrl = `https://translate.google.com/?sl=auto&tl=en&text=${encodeURIComponent(text)}`;
+      window.open(googleTranslateUrl, '_blank');
+    }
+
+    // Handle text selection
+    document.addEventListener('mouseup', (event) => {
+      selectedText = getSelectedText();
+      
+      if (selectedText.length > 0) {
+        const rect = window.getSelection().getRangeAt(0).getBoundingClientRect();
+        const x = rect.left + (rect.width / 2) - 50; // Center the button
+        const y = rect.top + window.scrollY;
+        showTranslateButton(x, y);
+      } else {
+        hideTranslateButton();
+      }
+    });
+
+    // Handle touch selection for mobile
+    document.addEventListener('touchend', (event) => {
+      setTimeout(() => {
+        selectedText = getSelectedText();
+        
+        if (selectedText.length > 0) {
+          const rect = window.getSelection().getRangeAt(0).getBoundingClientRect();
+          const x = rect.left + (rect.width / 2) - 50;
+          const y = rect.top + window.scrollY;
+          showTranslateButton(x, y);
+        } else {
+          hideTranslateButton();
+        }
+      }, 100); // Small delay to ensure selection is complete
+    });
+
+    // Handle translate button click
+    translateButton.addEventListener('click', () => {
+      if (selectedText) {
+        translateText(selectedText);
+      }
+      hideTranslateButton();
+    });
+
+    // Hide button when clicking elsewhere
+    document.addEventListener('click', (event) => {
+      if (event.target !== translateButton && !getSelectedText()) {
+        hideTranslateButton();
+      }
+    });
+
+    // Hide button on escape key
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        hideTranslateButton();
+        window.getSelection().removeAllRanges();
+      }
+    });
   </script>
 </body>
 </html>
